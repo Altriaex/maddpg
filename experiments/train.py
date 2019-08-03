@@ -17,13 +17,14 @@ def parse_args():
     parser.add_argument("--num-adversaries", type=int, default=0, help="number of adversaries")
     parser.add_argument("--good-policy", type=str, default="maddpg", help="policy for good agents")
     parser.add_argument("--adv-policy", type=str, default="maddpg", help="policy of adversaries")
+    parser.add_argument("--exp-id", type=int, default=0)
     # Core training parameters
     parser.add_argument("--lr", type=float, default=1e-2, help="learning rate for Adam optimizer")
     parser.add_argument("--gamma", type=float, default=0.95, help="discount factor")
     parser.add_argument("--batch-size", type=int, default=1024, help="number of episodes to optimize at the same time")
     parser.add_argument("--num-units", type=int, default=64, help="number of units in the mlp")
     # Checkpointing
-    parser.add_argument("--exp-name", type=str, default=None, help="name of the experiment")
+    parser.add_argument("--exp-name", type=str, default="reproduce", help="name of the experiment")
     parser.add_argument("--save-dir", type=str, default="policy", help="directory in which training state and model should be saved")
     parser.add_argument("--save-rate", type=int, default=1000, help="save model once every time this many episodes are completed")
     # Evaluation
@@ -75,11 +76,13 @@ def get_trainers(env, num_adversaries, obs_shape_n, arglist):
 
 
 def train(arglist):
-    base = arglist.scenario
+    if not os.path.exists("exp-{}".format(arglist.exp_id)):
+        os.mkdir("exp-{}".format(arglist.exp_id))
+    base = os.path.join("exp-{}".format(arglist.exp_id), arglist.scenario)
     save_dir = os.path.join(base, arglist.save_dir)
     benchmark_dir = os.path.join(base, arglist.benchmark_dir)
     plots_dir = os.path.join(base, arglist.plots_dir)
-    for dir in [base, save_dir, benchmark_dir, plots_dir]:
+    for dir in [base, benchmark_dir, plots_dir]:
         if not os.path.exists(dir):
             os.mkdir(dir)
     
@@ -145,7 +148,7 @@ def train(arglist):
                 for i, info in enumerate(info_n):
                     agent_info[-1][i].append(info_n['n'])
                 if train_step > arglist.benchmark_iters and (done or terminal):
-                    file_name = os.path.join(benchmark_dir,arglist.exp_name+'.pkl')
+                    file_name = os.path.join(benchmark_dir,'benchmark.pkl')
                     print('Finished benchmarking, now saving...')
                     with open(file_name, 'wb') as fp:
                         pickle.dump(agent_info[:-1], fp)
@@ -184,10 +187,10 @@ def train(arglist):
 
             # saves final episode reward for plotting training curve later
             if len(episode_rewards) > arglist.num_episodes:
-                rew_file_name = os.path.join(plots_dir, arglist.exp_name+'_rewards.pkl')
+                rew_file_name = os.path.join(plots_dir, 'rewards.pkl')
                 with open(rew_file_name, 'wb') as fp:
                     pickle.dump(final_ep_rewards, fp)
-                agrew_file_name = os.path.join(plots_dir, arglist.exp_name+'_agrewards.pkl')
+                agrew_file_name = os.path.join(plots_dir, 'agrewards.pkl')
                 with open(agrew_file_name, 'wb') as fp:
                     pickle.dump(final_ep_ag_rewards, fp)
                 print('...Finished total of {} episodes.'.format(len(episode_rewards)))
