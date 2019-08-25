@@ -1,9 +1,10 @@
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="-1" 
 import argparse
 import numpy as np
 import tensorflow as tf
 import time
 import pickle
-import os
 import maddpg.common.tf_util as U
 from maddpg.trainer.maddpg import MADDPGAgentTrainer
 import tensorflow.contrib.layers as layers
